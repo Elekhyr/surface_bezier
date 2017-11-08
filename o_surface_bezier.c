@@ -53,25 +53,42 @@ static Triplet calcPoint(Table_quadruplet pts_surface_bezier, double u)
 
 static void affiche_surface_bezier(struct surface_bezier *o)
 {
-	glEnd();
-	glBegin(GL_LINE_STRIP) ;
+	glBegin(GL_QUAD_STRIP) ;
 	
-	for(int k=0 ; k < o->nb_pts ; k++)
+	for (int i = 0; i < o->nb_pts_row - 1; ++i)
 	{
-		//glVertex3f(o->affichage.table[k].x, o->affichage.table[k].y, o->affichage.table[k].z);
+		for (int j = 0; j < o->nb_pts_col - 1; ++j)
+		{
+			glVertex3f(o->affichage.grille[i].table[j].x, o->affichage.grille[i].table[j].y, o->affichage.grille[i].table[j].z);
+			glVertex3f(o->affichage.grille[i + 1].table[j].x, o->affichage.grille[i + 1].table[j].y, o->affichage.grille[i + 1].table[j].z);
+			glVertex3f(o->affichage.grille[i].table[j + 1].x, o->affichage.grille[i].table[j + 1].y, o->affichage.grille[i].table[j + 1].z);
+			glVertex3f(o->affichage.grille[i + 1].table[j + 1].x, o->affichage.grille[i + 1].table[j + 1].y, o->affichage.grille[i + 1].table[j + 1].z);		
+		
+			++j;
+		}
+		++i;
 	}
+
 	glEnd();
 
 	//affichage polynome controle
 	if (o->polygone_ctrl) {
-		int j;
-		glBegin(GL_LINE_STRIP) ;
-
-		for(j=0 ; j<o->table_surface_bezier.nb ; j++)
-			glVertex3f(
-				o->table_surface_bezier.table[j].x,
-				o->table_surface_bezier.table[j].y,
-				o->table_surface_bezier.table[j].z); 
+		glBegin(GL_QUAD_STRIP) ;
+		
+		for (int i = 0; i < o->nb_pts_row - 1; ++i)
+		{
+			for (int j = 0; j < o->nb_pts_col - 1; ++j)
+			{
+				glVertex3f(o->table_surface_bezier.grille[i].table[j].x, o->table_surface_bezier.grille[i].table[j].y, o->table_surface_bezier.grille[i].table[j].z);
+				glVertex3f(o->table_surface_bezier.grille[i + 1].table[j].x, o->table_surface_bezier.grille[i + 1].table[j].y, o->table_surface_bezier.grille[i + 1].table[j].z);
+				glVertex3f(o->table_surface_bezier.grille[i].table[j + 1].x, o->table_surface_bezier.grille[i].table[j + 1].y, o->table_surface_bezier.grille[i].table[j + 1].z);
+				glVertex3f(o->table_surface_bezier.grille[i + 1].table[j + 1].x, o->table_surface_bezier.grille[i + 1].table[j + 1].y, o->table_surface_bezier.grille[i + 1].table[j + 1].z);		
+			
+				++j;
+			}
+			++i;
+		}
+	
 		glEnd();
 	}
 }
