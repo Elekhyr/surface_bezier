@@ -7,11 +7,28 @@
 struct surface_bezier
 {
   Grille_quadruplet table_surface_bezier;
-  int nb_pts;
+  int nb_pts_col;
+  int nb_pts_row;
   Grille_triplet affichage;
   Booleen polygone_ctrl;
 } ;
 
+static Triplet calcPointSurface(Grille_quadruplet pts_surface_bezier, double u, double v)
+{
+	Table_quadruplet T;
+	T.nb = pts_surface_bezier.nb;
+	ALLOUER(T.table, pts_surface_bezier.nb);
+	Triplet P;
+
+	for(int i = 0; i < pts_surface_bezier.nb; i++){
+		T[i] = calcPoint(pts_surface_bezier.grille[i], v);
+	}
+
+	P = calcPoint(T,u);
+	free(T);
+
+	return P;
+}
 
 static Triplet calcPoint(Table_quadruplet pts_surface_bezier, double u)
 {
@@ -79,18 +96,32 @@ static void affiche_surface_bezier(struct surface_bezier *o)
 static void changement(struct surface_bezier *o)
 {
 	double u = 0.f;
-	double pas = 1.f/(o->nb_pts -1);
+	double v = 0.f;
+	double pas_row = 1.f/(o->nb_pts_row -1);
+	double pas_col = 1.f/(o->nb_pts_col -1);
 	
-	ALLOUER(o->affichage.table, o->nb_pts);
+	ALLOUER(o->affichage.grille, o->nb_pts_row);
+	o->affichage.nb = o->nb_pts_row;
+
+	for (int i=0; i< o->nb_pts_row; ++i){
+		ALLOUER(o->affichage.grille[i], o->nb_pts_col);
+		o->affichage.grille[i].nb = o->nb_pts_col;
+	}
 	
-	if (o->nb_pts < 2)
-		o->nb_pts = 10;	
+	if (o->nb_pts_col < 2)
+		o->nb_pts_col = 10;
+	if (o->nb_pts_row < 2)
+		o->nb_pts_row = 10;
 	
-	/*for(int k=0 ; k < o->nb_pts ; k++)
+	for(int k = 0 ; k < o->nb_pts_row ; k++)
 	{
-		o->affichage.table[k] = calcPoint(o->surface_bezier, u);
-		u += pas;
-	}*/
+		for(int g = 0 ; g < o->nb_pts_col ; g++)
+		{
+			o->affichage.grille[k].table[g] = calcPointSurface(o->surface_bezier, u, v);
+			v += pas_col
+		}
+		u += pas_row;
+	}
 	
 }
 
@@ -102,6 +133,6 @@ CLASSE(surface_bezier, struct surface_bezier,
        CHAMP_VIRTUEL(L_affiche_gl(affiche_surface_bezier))
        
        MENU("TP_PERSO/surface_bezier")
-       EVENEMENT("Ctrl+BR")
+       EVENEMENT("Ctrl+SBZ")
        )
        
