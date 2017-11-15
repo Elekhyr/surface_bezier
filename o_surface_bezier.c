@@ -11,44 +11,28 @@ struct surface_bezier
   int nb_pts_row;
   Grille_triplet affichage;
   Booleen polygone_ctrl;
+  Booleen affichage_surface;
 } ;
 
-static Triplet calcPointSurface(Grille_quadruplet pts_surface_bezier, double u, double v)
+static Triplet calcPoint(Table_quadruplet pts_table_bezier, double u)
 {
 	Table_quadruplet T;
-	T.nb = pts_surface_bezier.nb;
-	ALLOUER(T.table, pts_surface_bezier.nb);
+	T.nb = pts_table_bezier.nb;
+	ALLOUER(T.table, pts_table_bezier.nb);
 	Triplet P;
 
-	for(int i = 0; i < pts_surface_bezier.nb; i++){
-		T[i] = calcPoint(pts_surface_bezier.grille[i], v);
-	}
-
-	P = calcPoint(T,u);
-	free(T);
-
-	return P;
-}
-
-static Triplet calcPoint(Table_quadruplet pts_surface_bezier, double u)
-{
-	Table_quadruplet T;
-	T.nb = pts_surface_bezier.nb;
-	ALLOUER(T.table, pts_surface_bezier.nb);
-	Triplet P;
-
-	for(int i=0 ; i < pts_surface_bezier.nb ; i++) {
+	for(int i=0 ; i < pts_table_bezier.nb ; i++) {
 		//coord homogenes
-		T.table[i].x  = pts_surface_bezier.table[i].x * pts_surface_bezier.table[i].h;
-		T.table[i].y  = pts_surface_bezier.table[i].y * pts_surface_bezier.table[i].h;
-		T.table[i].z  = pts_surface_bezier.table[i].z * pts_surface_bezier.table[i].h;
-		T.table[i].h  = pts_surface_bezier.table[i].h;
+		T.table[i].x  = pts_table_bezier.table[i].x * pts_table_bezier.table[i].h;
+		T.table[i].y  = pts_table_bezier.table[i].y * pts_table_bezier.table[i].h;
+		T.table[i].z  = pts_table_bezier.table[i].z * pts_table_bezier.table[i].h;
+		T.table[i].h  = pts_table_bezier.table[i].h;
 	}
 	
-	for(int rang = 1; rang < pts_surface_bezier.nb ; rang++) {
+	for(int rang = 1; rang < pts_table_bezier.nb ; rang++) {
 		//de casteljau
 		
-		for(int i=0 ; i < pts_surface_bezier.nb - rang ; i++) {
+		for(int i=0 ; i < pts_table_bezier.nb - rang ; i++) {
 			T.table[i].x = T.table[i].x * (1-u) + T.table[i+1].x * u;
 			T.table[i].y = T.table[i].y * (1-u) + T.table[i+1].y * u;
 			T.table[i].z = T.table[i].z * (1-u) + T.table[i+1].z * u;
@@ -68,45 +52,100 @@ static Triplet calcPoint(Table_quadruplet pts_surface_bezier, double u)
 	return P;
 }
 
+static Triplet calcPointSurface(Grille_quadruplet pts_surface_bezier, double u, double v)
+{
+	Table_quadruplet T;
+	T.nb = pts_surface_bezier.nb_colonnes;
+	ALLOUER(T.table, pts_surface_bezier.nb_colonnes);
+	
+	Table_quadruplet TableColonne;
+	TableColonne.nb = pts_surface_bezier.nb_lignes;
+	ALLOUER(TableColonne.table, pts_surface_bezier.nb_lignes);
+	
+	Triplet P;
+	for(int j = 0; j < pts_surface_bezier.nb_colonnes; j++){
+		for(int i = 0; i < pts_surface_bezier.nb_lignes; i++){
+			TableColonne.table[i].x = pts_surface_bezier.grille[i][j].x;
+			TableColonne.table[i].y = pts_surface_bezier.grille[i][j].y;
+			TableColonne.table[i].z = pts_surface_bezier.grille[i][j].z;
+			TableColonne.table[i].h = pts_surface_bezier.grille[i][j].h;
+		}
+		
+		P = calcPoint(TableColonne, v);
+		
+		T.table[j].x = P.x;
+		T.table[j].y = P.y;
+		T.table[j].z = P.z;
+		T.table[j].h = 1.; 
+	}
+
+	P = calcPoint(T,u);
+	
+	free(TableColonne.table);
+	free(T.table);
+	return P;
+}
+
 static void affiche_surface_bezier(struct surface_bezier *o)
 {
-	glBegin(GL_QUAD_STRIP) ;
-	
-	for (int i = 0; i < o->nb_pts_row - 1; ++i)
-	{
-		for (int j = 0; j < o->nb_pts_col - 1; ++j)
+
+	//affichage surface
+	if (o->affichage_surface) {
+		for (int i = 0; i < o->nb_pts_row -1; ++i)
 		{
-			glVertex3f(o->affichage.grille[i].table[j].x, o->affichage.grille[i].table[j].y, o->affichage.grille[i].table[j].z);
-			glVertex3f(o->affichage.grille[i + 1].table[j].x, o->affichage.grille[i + 1].table[j].y, o->affichage.grille[i + 1].table[j].z);
-			glVertex3f(o->affichage.grille[i].table[j + 1].x, o->affichage.grille[i].table[j + 1].y, o->affichage.grille[i].table[j + 1].z);
-			glVertex3f(o->affichage.grille[i + 1].table[j + 1].x, o->affichage.grille[i + 1].table[j + 1].y, o->affichage.grille[i + 1].table[j + 1].z);		
-		
-			++j;
+			for (int j = 0; j < o->nb_pts_col -1; ++j)
+			{
+				
+				glBegin(GL_TRIANGLES);
+				glVertex3f(o->affichage.grille[i][j].x, o->affichage.grille[i][j].y, o->affichage.grille[i][j].z);
+				glVertex3f(o->affichage.grille[i][j + 1].x, o->affichage.grille[i][j + 1].y, o->affichage.grille[i][j + 1].z);	
+				glVertex3f(o->affichage.grille[i + 1][j].x, o->affichage.grille[i + 1][j].y, o->affichage.grille[i + 1][j].z);
+				glEnd();
+				
+				glBegin(GL_TRIANGLES);
+				glVertex3f(o->affichage.grille[i][j + 1].x, o->affichage.grille[i][j + 1].y, o->affichage.grille[i][j + 1].z);
+				glVertex3f(o->affichage.grille[i + 1][j].x, o->affichage.grille[i + 1][j].y, o->affichage.grille[i + 1][j].z);
+				glVertex3f(o->affichage.grille[i + 1][j + 1].x, o->affichage.grille[i + 1][j + 1].y, o->affichage.grille[i + 1][j + 1].z);
+				glEnd();
+			}
 		}
-		++i;
+	}
+	
+	for (int i = 0; i < o->nb_pts_row; ++i)
+	{
+		for (int j = 0; j < o->nb_pts_col; ++j)
+		{
+			glBegin(GL_POINTS);
+			glVertex3f(o->affichage.grille[i][j].x, o->affichage.grille[i][j].y, o->affichage.grille[i][j].z);
+			glEnd();
+		}
 	}
 
 	glEnd();
 
 	//affichage polynome controle
 	if (o->polygone_ctrl) {
-		glBegin(GL_QUAD_STRIP) ;
 		
-		for (int i = 0; i < o->nb_pts_row - 1; ++i)
+		
+		for (int i = 0; i < o->table_surface_bezier.nb_lignes - 1; ++i)
 		{
-			for (int j = 0; j < o->nb_pts_col - 1; ++j)
+			for (int j = 0; j < o->table_surface_bezier.nb_colonnes - 1; ++j)
 			{
-				glVertex3f(o->table_surface_bezier.grille[i].table[j].x, o->table_surface_bezier.grille[i].table[j].y, o->table_surface_bezier.grille[i].table[j].z);
-				glVertex3f(o->table_surface_bezier.grille[i + 1].table[j].x, o->table_surface_bezier.grille[i + 1].table[j].y, o->table_surface_bezier.grille[i + 1].table[j].z);
-				glVertex3f(o->table_surface_bezier.grille[i].table[j + 1].x, o->table_surface_bezier.grille[i].table[j + 1].y, o->table_surface_bezier.grille[i].table[j + 1].z);
-				glVertex3f(o->table_surface_bezier.grille[i + 1].table[j + 1].x, o->table_surface_bezier.grille[i + 1].table[j + 1].y, o->table_surface_bezier.grille[i + 1].table[j + 1].z);		
-			
-				++j;
+				glBegin(GL_TRIANGLES);
+				glVertex3f(o->table_surface_bezier.grille[i][j].x, o->table_surface_bezier.grille[i][j].y, o->table_surface_bezier.grille[i][j].z);
+				glVertex3f(o->table_surface_bezier.grille[i][j + 1].x, o->table_surface_bezier.grille[i][j + 1].y, o->table_surface_bezier.grille[i][j + 1].z);
+				glVertex3f(o->table_surface_bezier.grille[i + 1][j].x, o->table_surface_bezier.grille[i + 1][j].y, o->table_surface_bezier.grille[i + 1][j].z);	
+				glEnd();
+				
+				glBegin(GL_TRIANGLES);
+				glVertex3f(o->table_surface_bezier.grille[i][j + 1].x, o->table_surface_bezier.grille[i][j + 1].y, o->table_surface_bezier.grille[i][j + 1].z);
+				glVertex3f(o->table_surface_bezier.grille[i + 1][j].x, o->table_surface_bezier.grille[i + 1][j].y, o->table_surface_bezier.grille[i + 1][j].z);
+				glVertex3f(o->table_surface_bezier.grille[i + 1][j + 1].x, o->table_surface_bezier.grille[i + 1][j + 1].y, o->table_surface_bezier.grille[i + 1][j + 1].z);
+				glEnd();
 			}
-			++i;
 		}
-	
-		glEnd();
+		
+		
 	}
 }
 
@@ -118,11 +157,11 @@ static void changement(struct surface_bezier *o)
 	double pas_col = 1.f/(o->nb_pts_col -1);
 	
 	ALLOUER(o->affichage.grille, o->nb_pts_row);
-	o->affichage.nb = o->nb_pts_row;
+	o->affichage.nb_lignes = o->nb_pts_row;
+	o->affichage.nb_colonnes = o->nb_pts_col;
 
 	for (int i=0; i< o->nb_pts_row; ++i){
 		ALLOUER(o->affichage.grille[i], o->nb_pts_col);
-		o->affichage.grille[i].nb = o->nb_pts_col;
 	}
 	
 	if (o->nb_pts_col < 2)
@@ -134,22 +173,24 @@ static void changement(struct surface_bezier *o)
 	{
 		for(int g = 0 ; g < o->nb_pts_col ; g++)
 		{
-			o->affichage.grille[k].table[g] = calcPointSurface(o->surface_bezier, u, v);
-			v += pas_col
+			o->affichage.grille[k][g] = calcPointSurface(o->table_surface_bezier, u, v);
+			v += pas_col;
 		}
+		v =0;
 		u += pas_row;
 	}
 	
 }
 
 CLASSE(surface_bezier, struct surface_bezier,      
-       CHAMP(table_surface_bezier, L_table_point P_grille_quadruplet Sauve Extrait)   
-       CHAMP(nb_pts, LABEL("Nombre de points") L_entier  Edite Sauve DEFAUT("10") )
+       CHAMP(table_surface_bezier, L_grille_point P_grille_quadruplet Sauve Extrait)   
+       CHAMP(nb_pts_col, LABEL("Nombre de points sur les lignes") L_entier  Edite Sauve DEFAUT("10") )
+       CHAMP(nb_pts_row, LABEL("Nombre de points sur les colones") L_entier  Edite Sauve DEFAUT("10") )
        CHAMP(polygone_ctrl, LABEL("afficher le polygone de contrôle") L_booleen  Edite Sauve DEFAUT("0") )
+       CHAMP(affichage_surface, LABEL("afficher la surface") L_booleen  Edite Sauve DEFAUT("0") )
        CHANGEMENT(changement)
        CHAMP_VIRTUEL(L_affiche_gl(affiche_surface_bezier))
        
        MENU("TP_PERSO/surface_bezier")
        EVENEMENT("Ctrl+SBZ")
        )
-       
