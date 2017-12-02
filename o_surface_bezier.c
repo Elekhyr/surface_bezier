@@ -145,40 +145,66 @@ static void affiche_surface_bezier(struct surface_bezier *o)
 			}
 		}
 		
-		
 	}
+	
+
 }
 
 static void changement(struct surface_bezier *o)
-{
+{	
+	if ( ! (UN_CHAMP_CHANGE(o)||CREATION(o)) )
+    return ;
+
 	double u = 0.f;
 	double v = 0.f;
 	double pas_row = 1.f/(o->nb_pts_row -1);
 	double pas_col = 1.f/(o->nb_pts_col -1);
-	
-	ALLOUER(o->affichage.grille, o->nb_pts_row);
-	o->affichage.nb_lignes = o->nb_pts_row;
-	o->affichage.nb_colonnes = o->nb_pts_col;
 
-	for (int i=0; i< o->nb_pts_row; ++i){
-		ALLOUER(o->affichage.grille[i], o->nb_pts_col);
-	}
-	
-	if (o->nb_pts_col < 2)
-		o->nb_pts_col = 10;
-	if (o->nb_pts_row < 2)
-		o->nb_pts_row = 10;
-	
-	for(int k = 0 ; k < o->nb_pts_row ; k++)
+	if (CREATION(o))
 	{
-		for(int g = 0 ; g < o->nb_pts_col ; g++)
-		{
-			o->affichage.grille[k][g] = calcPointSurface(o->table_surface_bezier, u, v);
-			v += pas_col;
+		ALLOUER(o->affichage.grille, o->nb_pts_row);
+		o->affichage.nb_lignes = o->nb_pts_row;
+		o->affichage.nb_colonnes = o->nb_pts_col;
+
+		for (int i=0; i< o->nb_pts_row; ++i){
+			ALLOUER(o->affichage.grille[i], o->nb_pts_col);
 		}
-		v =0;
-		u += pas_row;
 	}
+
+	if (CHAMP_CHANGE(o, table_surface_bezier) || CHAMP_CHANGE(o, nb_pts_row) || CHAMP_CHANGE(o, nb_pts_col) )
+	{
+		for (int i=0; i< o->nb_pts_row; ++i){
+			free(o->affichage.grille[i]);
+		}
+		
+		free(o->affichage.grille);
+		
+		ALLOUER(o->affichage.grille, o->nb_pts_row);
+		o->affichage.nb_lignes = o->nb_pts_row;
+		o->affichage.nb_colonnes = o->nb_pts_col;
+
+		for (int i=0; i< o->nb_pts_row; ++i){
+			ALLOUER(o->affichage.grille[i], o->nb_pts_col);
+		}
+		
+		if (o->nb_pts_col < 2)
+			o->nb_pts_col = 10;
+		if (o->nb_pts_row < 2)
+			o->nb_pts_row = 10;
+		
+		for(int k = 0 ; k < o->nb_pts_row ; k++)
+		{
+			for(int g = 0 ; g < o->nb_pts_col ; g++)
+			{
+				o->affichage.grille[k][g] = calcPointSurface(o->table_surface_bezier, u, v);
+				v += pas_col;
+			}
+			v =0;
+			u += pas_row;
+		}
+	}
+	
+
 	
 }
 
